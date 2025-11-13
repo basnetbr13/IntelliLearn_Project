@@ -2,7 +2,7 @@ import { GoogleGenAI, Type, Modality, GenerateContentResponse } from "@google/ge
 import { QuizQuestion, Flashcard, Chapter, MangaPanel } from "../types";
 
 // FIX: API key must be retrieved from environment variables, not hardcoded.
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Helper to safely parse JSON from a model's response
 const parseJsonResponse = <T>(response: GenerateContentResponse): T => {
