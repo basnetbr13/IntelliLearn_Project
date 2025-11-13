@@ -39,7 +39,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
         setIsProcessing(false);
       }
       reader.readAsText(file);
-    } else if (fileMimeType === 'application/pdf') {
+    } else if (supportedFileTypes.includes(fileMimeType)) {
         setIsProcessing(true);
         const reader = new FileReader();
         reader.onload = (e) => {
