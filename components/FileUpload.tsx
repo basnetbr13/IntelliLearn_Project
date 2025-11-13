@@ -52,7 +52,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
         }
         reader.readAsDataURL(file);
     } else {
-      alert('Unsupported file type. Please upload a PDF, .txt, .jpg, or .png file.');
+      alert('Unsupported file type. Please upload a PDF, DOCX, PPTX, .txt, .jpg, or .png file.');
     }
   }, [onFileSelect]);
 
@@ -94,7 +94,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
             type="file" 
             id="file-upload" 
             className="hidden" 
-            accept=".txt,.jpg,.jpeg,.png,.pdf"
+            accept=".txt,.jpg,.jpeg,.png,.pdf, .docx, .pptx"
             onChange={onFileChange}
             disabled={isProcessing}
         />
@@ -114,7 +114,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
                         <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                     </svg>
                     <p className="mb-2 text-md text-slate-600"><span className="font-bold text-sky-600">Click to upload</span> or drag and drop</p>
-                    <p className="text-xs text-slate-400">PDF, TXT, JPG, or PNG</p>
+                    <p className="text-xs text-slate-400">PDF, DOCX, PPTX, TXT, JPG, or PNG</p>
                 </>
             )}
         </label>
