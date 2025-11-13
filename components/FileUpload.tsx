@@ -10,7 +10,11 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
 
   const handleFile = useCallback(async (file: File) => {
     const fileMimeType = file.type;
-
+    const supportedFileTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
     if (fileMimeType.startsWith('image/')) {
       setIsProcessing(true);
       const reader = new FileReader();
