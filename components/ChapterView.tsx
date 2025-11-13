@@ -8,7 +8,8 @@ import { ActiveTab, Chapter, MangaPanel } from '../types';
 
 interface ChapterViewProps {
     chapter: Chapter;
-    onUpdateChapter: (updatedChapterData: Partial<Chapter>) => void;
+    // FIX: Updated the prop type to allow function updaters, aligning it with the implementation in App.tsx.
+    onUpdateChapter: (updatedChapterData: Partial<Chapter> | { [K in keyof Chapter]?: (prevState: Chapter[K]) => Chapter[K] }) => void;
     onBack: () => void;
 }
 
