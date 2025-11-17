@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IntelliLearn Login</title>
+    <style>
+        /* Basic Reset and Setup */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* Login Container Styling */
+        .login-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 380px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        /* Form Group and Input Styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; 
+            font-size: 16px;
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+        }
+
+        /* Button Styling */
+        button {
+            width: 100%;
+            background-color: #007bff;
+            color: white;
+            padding: 14px 20px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Footer Links */
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .footer-links a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Error Message Styling */
+        #error-message {
+            color: #dc3545;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>Member Login</h2>
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <button type="submit">Log In</button>
+        </form>
+        
+        <p id="error-message"></p> 
+
+        <div class="footer-links">
+            <a href="#">Forgot Password?</a> | 
+            <a href="Signup.html">Sign Up</a> 
+        </div>
+    </div>
+
+    <script type="module">
+        // 1. Import the necessary functions from the SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDChk3geORyc2f5nWubEEex7DLOeT0TxFw",
+            authDomain: "intellilearn-99dcf.firebaseapp.com",
+            databaseURL: "https://intellilearn-99dcf-default-rtdb.firebaseio.com",
+            projectId: "intellilearn-99dcf",
+            storageBucket: "intellilearn-99dcf.firebasestorage.app",
+            messagingSenderId: "1045445977207",
+            appId: "1:1045445977207:web:c2038638dc97a6d8775272",
+            measurementId: "G-KZS4QLYW4W"
+        };
+
+        // 2. Initialize Firebase and get the Auth instance
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app); // Get the authentication service instance
+
+        // --- Login Logic ---
+
+        // 3. Get the form elements
+        const loginForm = document.getElementById('login-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const errorMessageElement = document.getElementById('error-message'); 
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault(); // Stop the default form submission
+
+                const email = emailInput.value;
+                const password = passwordInput.value;
+                
+                errorMessageElement.textContent = ''; // Clear previous error
+
+                try {
+                    // 4. Call the Firebase login function
+                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                    
+                    // Success!
+                    console.log("Login Successful!", userCredential.user);
+                    // 5. Redirect the user to the dashboard
+                    // You must create a dashboard.html page for this to work
+                    window.location.href = 'dashboard.html'; 
+
+                } catch (error) {
+                    // Failure! Handle and display the error.
+                    let message;
+                    switch (error.code) {
+                        case 'auth/user-not-found':
+                        case 'auth/wrong-password':
+                            message = 'Invalid email or password.';
+                            break;
+                        case 'auth/invalid-email':
+                            message = 'The email address is not valid.';
+                            break;
+                        default:
+                            message = 'Login failed. Please try again.';
+                    }
+                    errorMessageElement.textContent = message;
+                    console.error("Firebase Login Error:", error.code, error.message);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

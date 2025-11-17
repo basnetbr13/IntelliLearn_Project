@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Sign Up</title>
+    <style>
+        /* Basic Reset and Setup - Reusing Login Page Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* Login Container Styling */
+        .login-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 380px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        /* Form Group and Input Styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; 
+            font-size: 16px;
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+        }
+
+        /* Button Styling */
+        button {
+            width: 100%;
+            background-color: #007bff;
+            color: white;
+            padding: 14px 20px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Footer Links */
+        .footer-links {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .footer-links a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Message Styling */
+        #register-message {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            /* Will be set dynamically to green for success, red for error */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>Create an Account</h2>
+        <!-- Form with unique IDs for registration -->
+        <form id="register-form">
+            <div class="form-group">
+                <label for="reg-email">Email Address</label>
+                <input type="email" id="reg-email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-password">Password</label>
+                <!-- Firebase requires a password of at least 6 characters -->
+                <input type="password" id="reg-password" name="password" minlength="6" required>
+            </div>
+            <button type="submit">Register Account</button>
+        </form>
+        
+        <p id="register-message"></p> 
+
+        <div class="footer-links">
+            <!-- Link back to the login page -->
+            <a href="login.html">Already have an account? Log In</a>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- FIREBASE REGISTRATION LOGIC -->
+    <!-- ============================================== -->
+
+    <script type="module">
+        // Import necessary functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+        // Your web app's Firebase configuration (IntelliLearn project)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDChk3geORyc2f5nWubEEex7DLOeT0TxFw",
+            authDomain: "intellilearn-99dcf.firebaseapp.com",
+            databaseURL: "https://intellilearn-99dcf-default-rtdb.firebaseio.com",
+            projectId: "intellilearn-99dcf",
+            storageBucket: "intellilearn-99dcf.firebasestorage.app",
+            messagingSenderId: "1045445977207",
+            appId: "1:1045445977207:web:c2038638dc97a6d8775272",
+            measurementId: "G-KZS4QLYW4W"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app); 
+        
+        // --- Registration Logic ---
+        const registerForm = document.getElementById('register-form');
+        const emailInput = document.getElementById('reg-email');
+        const passwordInput = document.getElementById('reg-password');
+        const messageElement = document.getElementById('register-message');
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            messageElement.textContent = ''; // Clear previous message
+            messageElement.style.color = '#333'; // Reset color
+
+            try {
+                // Call the Firebase registration function
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                
+                // Success! User is automatically logged in upon creation.
+                messageElement.textContent = "Registration successful! Redirecting...";
+                messageElement.style.color = '#28a745'; // Green success message
+                console.log("User created:", userCredential.user);
+                
+                // Redirect to the protected dashboard page
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1500);
+
+            } catch (error) {
+                // Failure! Display the error to the user.
+                let message = 'Registration failed.';
+                
+                switch (error.code) {
+                    case 'auth/email-already-in-use':
+                        message = 'This email address is already in use.';
+                        break;
+                    case 'auth/invalid-email':
+                        message = 'The email address is not valid.';
+                        break;
+                    case 'auth/weak-password':
+                        message = 'Password must be at least 6 characters.';
+                        break;
+                    default:
+                        message = `Error: ${error.message}`;
+                }
+                
+                messageElement.textContent = message;
+                messageElement.style.color = '#dc3545'; // Red error message
+                console.error("Firebase Registration Error:", error.code, error.message);
+            }
+        });
+    </script>
+</body>
+</html>
