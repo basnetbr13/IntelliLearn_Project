@@ -1,197 +1,251 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
-import { FileUpload } from './FileUpload';
-import { ActionButtons } from './ActionButtons';
-import { ResultDisplay } from './ResultDisplay';
-import { Spinner } from './Spinner';
-import { generateSummary, generateQuiz, generateFlashcards, generateMangaScript, generateMangaPanelImage } from '../services/geminiService';
-import { ActiveTab, Chapter, MangaPanel } from '../types';
+import { Chapter, GenerationType } from '../types';
+import * as geminiService from '../services/geminiService';
+import * as db from '../services/db';
+import FileUpload from './FileUpload';
+import ActionButtons from './ActionButtons';
+import ResultDisplay from './ResultDisplay';
+import Spinner from './Spinner';
+import PdfPreviewer from './PdfPreviewer';
+
+// jsPDF is loaded from a script tag in index.html
+declare const jsPDF: any;
 
 interface ChapterViewProps {
-    chapter: Chapter;
-    // FIX: Updated the prop type to allow function updaters, aligning it with the implementation in App.tsx.
-    onUpdateChapter: (updatedChapterData: Partial<Chapter> | { [K in keyof Chapter]?: (prevState: Chapter[K]) => Chapter[K] }) => void;
-    onBack: () => void;
+  chapter: Chapter;
+  onUpdateChapter: (updatedChapter: Chapter) => void;
+  onBack: () => void;
 }
 
-export const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onUpdateChapter, onBack }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('');
+const ChapterView: React.FC<ChapterViewProps> = ({ chapter, onUpdateChapter, onBack }) => {
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const [isConvertingToPdf, setIsConvertingToPdf] = useState(false);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  const [generatingType, setGeneratingType] = useState<GenerationType | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab | null>(null);
 
+  // Effect to cleanup blob URL on component unmount
   useEffect(() => {
-    if (!activeTab) {
-        if (chapter.summary) setActiveTab('summary');
-        else if (chapter.quiz) setActiveTab('quiz');
-        else if (chapter.flashcards) setActiveTab('flashcards');
-        else if (chapter.mangaScript) setActiveTab('manga');
-        else setActiveTab(null);
-    }
-  }, [chapter, activeTab]);
+    return () => {
+      if (pdfPreviewUrl) {
+        URL.revokeObjectURL(pdfPreviewUrl);
+      }
+    };
+  }, [pdfPreviewUrl]);
 
-
-  const handleFileSelect = (selectedFile: File, content: string, type: 'text' | 'image' | 'file', mimeType?: string) => {
+  const handleFileSelect = useCallback((file: File) => {
+    setSourceFile(file);
+    // Reset chapter content when a new file is uploaded
     onUpdateChapter({
-        sourceFile: { name: selectedFile.name, content, type, mimeType },
-        summary: null,
-        quiz: null,
-        flashcards: null,
-        mangaScript: null,
+        ...chapter,
+        sourceContent: '',
+        sourceFileName: file.name,
+        generatedPdfKey: undefined,
+        generatedContent: { summary: '', quiz: [], flashcards: [], mangaScript: [] }
     });
-    setActiveTab(null);
-  };
+  }, [chapter, onUpdateChapter]);
   
-  const handleResetFile = () => {
-    onUpdateChapter({
-        sourceFile: null,
-        summary: null,
-        quiz: null,
-        flashcards: null,
-        mangaScript: null,
-    });
-    setActiveTab(null);
-  }
-
-  const handleGenerate = async (
-    generationFn: (content: string, type: Chapter['sourceFile']['type'], mimeType?: string) => Promise<any>,
-    updateKey: keyof Chapter,
-    tabToActivate: ActiveTab,
-    message: string
-  ) => {
-    if (!chapter.sourceFile) return;
-    setIsLoading(true);
-    setLoadingMessage(message);
-    setError(null);
-    try {
-      const result = await generationFn(chapter.sourceFile.content, chapter.sourceFile.type, chapter.sourceFile.mimeType);
-      onUpdateChapter({ [updateKey]: result });
-      setActiveTab(tabToActivate);
-    } catch (e) {
-      const errorMessage = `Failed to generate ${tabToActivate}. Please check the browser console (F12) for more details.`;
-      setError(errorMessage);
-      console.error(`Error during ${tabToActivate} generation:`, e);
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
+  const handleRemoveFile = async () => {
+    setSourceFile(null);
+    const keysToDelete: string[] = [];
+    if (chapter.generatedPdfKey) {
+        keysToDelete.push(chapter.generatedPdfKey);
     }
+    if (keysToDelete.length > 0) {
+        await db.deletePdfs(keysToDelete);
+    }
+    onUpdateChapter({
+        ...chapter,
+        sourceContent: '',
+        sourceFileName: undefined,
+        generatedPdfKey: undefined,
+        generatedContent: { summary: '', quiz: [], flashcards: [], mangaScript: [] }
+    });
   };
 
-  const handleGenerateManga = async () => {
-    if (!chapter.sourceFile) return;
-    setIsLoading(true);
-    setLoadingMessage('Generating manga script...');
+  const handleProcessFile = useCallback(async () => {
+    if (!sourceFile) return;
+    setIsProcessingFile(true);
     setError(null);
     try {
-      const script = await generateMangaScript(chapter.sourceFile.content, chapter.sourceFile.type, chapter.sourceFile.mimeType);
-      
-      const initialPanels: MangaPanel[] = script.map(panel => ({ ...panel, imageUrl: null }));
-      onUpdateChapter({ mangaScript: initialPanels });
-      setActiveTab('manga');
-      setLoadingMessage('Generating panel images...');
+      const content = await geminiService.extractTextFromContent(sourceFile);
+      onUpdateChapter({ ...chapter, sourceContent: content, sourceFileName: sourceFile.name });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'An unknown error occurred during file processing.');
+    } finally {
+      setIsProcessingFile(false);
+    }
+  }, [chapter, onUpdateChapter, sourceFile]);
 
-      const imagePromises = script.map(async (panel, index) => {
-        try {
-          const imageUrl = await generateMangaPanelImage(panel.panelPrompt);
-          return { index, imageUrl };
-        } catch (imgError) {
-          console.error(`Failed to generate image for panel ${index}:`, imgError);
-          return { index, imageUrl: 'error' };
-        }
-      });
+  const handleConvertToPdf = async () => {
+    if (!sourceFile) return;
+
+    setIsConvertingToPdf(true);
+    setError(null);
+
+    try {
+      const doc = new jsPDF();
       
-      for (const promise of imagePromises) {
-          promise.then(({ index, imageUrl }) => {
-              onUpdateChapter({
-                  mangaScript: (currentScript) => {
-                      const newScript = [...(currentScript || [])];
-                      if(newScript[index]) {
-                          newScript[index].imageUrl = imageUrl;
-                      }
-                      return newScript;
-                  }
-              });
-          });
+      if (sourceFile.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const imgData = event.target?.result as string;
+          const img = new Image();
+          img.src = imgData;
+          img.onload = async () => {
+            const pdfWidth = doc.internal.pageSize.getWidth();
+            const pdfHeight = doc.internal.pageSize.getHeight();
+            const ratio = Math.min(pdfWidth / img.width, pdfHeight / img.height);
+            const imgWidth = img.width * ratio;
+            const imgHeight = img.height * ratio;
+            const x = (pdfWidth - imgWidth) / 2;
+            const y = (pdfHeight - imgHeight) / 2;
+            doc.addImage(imgData, 'JPEG', x, y, imgWidth, imgHeight);
+            finalizePdf(doc);
+          }
+        };
+        reader.readAsDataURL(sourceFile);
+      } else if (sourceFile.type === 'text/plain') {
+        const text = await sourceFile.text();
+        const splitText = doc.splitTextToSize(text, 180);
+        doc.text(splitText, 10, 10);
+        finalizePdf(doc);
       }
 
-      await Promise.allSettled(imagePromises);
-
     } catch (e) {
-      const errorMessage = `Failed to generate manga. Please check the browser console (F12) for more details.`;
-      setError(errorMessage);
-      console.error(`Error during manga generation:`, e);
-    } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
+      setError(e instanceof Error ? e.message : 'An error occurred during PDF conversion.');
+      setIsConvertingToPdf(false);
+    }
+    
+    async function finalizePdf(doc: any) {
+        const pdfBlob = doc.output('blob');
+        const pdfKey = `${chapter.id}-generated-pdf`;
+        await db.savePdf(pdfKey, pdfBlob);
+        onUpdateChapter({ ...chapter, generatedPdfKey: pdfKey });
+        
+        const url = URL.createObjectURL(pdfBlob);
+        setPdfPreviewUrl(url);
+        setShowPdfPreview(true);
+        setIsConvertingToPdf(false);
     }
   };
 
+  const handleGenerate = useCallback(async (type: GenerationType) => {
+    setGeneratingType(type);
+    setError(null);
+    try {
+      let updatedChapter = { ...chapter };
+      switch (type) {
+        case 'summary':
+          const summary = await geminiService.generateSummary(chapter.sourceContent);
+          updatedChapter.generatedContent.summary = summary;
+          break;
+        case 'quiz':
+          const quiz = await geminiService.generateQuiz(chapter.sourceContent);
+          updatedChapter.generatedContent.quiz = quiz;
+          break;
+        case 'flashcards':
+          const flashcards = await geminiService.generateFlashcards(chapter.sourceContent);
+          updatedChapter.generatedContent.flashcards = flashcards;
+          break;
+        case 'manga':
+          const script = await geminiService.generateMangaScript(chapter.sourceContent);
+          updatedChapter.generatedContent.mangaScript = script.map(panel => ({ ...panel, imageUrl: undefined }));
+          onUpdateChapter(updatedChapter);
 
-  const handleGenerateSummary = () => handleGenerate(generateSummary, 'summary', 'summary', 'Generating summary...');
-  const handleGenerateQuiz = () => handleGenerate(generateQuiz, 'quiz', 'quiz', 'Generating quiz...');
-  const handleGenerateFlashcards = () => handleGenerate(generateFlashcards, 'flashcards', 'flashcards', 'Generating flashcards...');
-
-  const hasGeneratedContent = chapter.summary || chapter.quiz || chapter.flashcards || chapter.mangaScript;
+          const updatedScriptWithKeys = [...script];
+          for (let i = 0; i < script.length; i++) {
+            try {
+              const panel = script[i];
+              const imageKey = `${chapter.id}-${panel.id}`;
+              // Fixed: Using the correct exported function name 'generateMangaImage'
+              const base64Image = await geminiService.generateMangaImage(panel.description);
+              await db.saveImage(imageKey, base64Image);
+              updatedScriptWithKeys[i] = { ...panel, imageUrl: imageKey };
+              onUpdateChapter({ ...updatedChapter, generatedContent: { ...updatedChapter.generatedContent, mangaScript: [...updatedScriptWithKeys] }});
+            } catch (imgErr) {
+               console.error(`Failed to generate image for panel ${i+1}:`, imgErr);
+            }
+          }
+          return;
+      }
+      onUpdateChapter(updatedChapter);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : `An unknown error occurred during ${type} generation.`);
+    } finally {
+      setGeneratingType(null);
+    }
+  }, [chapter, onUpdateChapter]);
+  
+  const canConvertToPdf = sourceFile && sourceFile.type !== 'application/pdf';
 
   return (
-    <div>
-        <button onClick={onBack} className="mb-6 inline-flex items-center gap-2 text-sm text-sky-600 hover:text-sky-700 transition-colors font-semibold">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12" /></svg>
-            Back to Course
+    <>
+      {showPdfPreview && pdfPreviewUrl && sourceFile && (
+        <PdfPreviewer
+          pdfUrl={pdfPreviewUrl}
+          fileName={sourceFile.name}
+          onClose={() => setShowPdfPreview(false)}
+        />
+      )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <button onClick={onBack} className="mb-6 text-sm font-medium text-sky-600 dark:text-sky-400 hover:underline">
+          &larr; Back to Course
         </button>
-        <h2 className="text-4xl font-bold mb-2 text-slate-800">{chapter.name}</h2>
-        <p className="text-slate-600 mb-8">Upload a file to generate study materials for this chapter.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{chapter.title}</h1>
         
-        <div className="bg-white/50 rounded-xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm border border-slate-200">
-          {!chapter.sourceFile ? (
-            <FileUpload onFileSelect={handleFileSelect} />
-          ) : (
-            <div>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-slate-100 p-4 rounded-lg border border-slate-200">
-                  <div className="flex items-center space-x-3 overflow-hidden mb-3 sm:mb-0">
-                    <span className="text-emerald-500 flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                    </span>
-                    <p className="font-medium text-slate-700 truncate" title={chapter.sourceFile.name}>
-                        <span className="text-slate-500 font-normal">Source: </span>
-                        {chapter.sourceFile.name}
-                    </p>
-                  </div>
-                  <button onClick={handleResetFile} className="text-sm text-slate-700 bg-slate-200 hover:bg-slate-300 transition-colors font-semibold py-2 px-4 rounded-md flex-shrink-0 w-full sm:w-auto">
-                    Upload New File
+        {error && (
+          <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md" role="alert">
+            <p className="font-bold">An Error Occurred</p>
+            <p>{error}</p>
+          </div>
+        )}
+
+        <div className="mt-8 p-6 bg-white dark:bg-slate-800/50 rounded-lg shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-4">1. Upload Source Material</h2>
+          {chapter.sourceFileName ? (
+             <div className="p-4 rounded-md bg-slate-100 dark:bg-slate-700">
+               <div className="flex justify-between items-center">
+                 <p className="text-slate-700 dark:text-slate-300">
+                    <span className="font-medium">File:</span> {chapter.sourceFileName}
+                 </p>
+                 <button onClick={handleRemoveFile} className="text-sm text-red-500 hover:underline">
+                   Remove
+                 </button>
+               </div>
+               <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600 flex gap-4">
+                  <button onClick={handleProcessFile} disabled={isProcessingFile || !!chapter.sourceContent} className="px-4 py-2 text-sm font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700 disabled:bg-slate-400 dark:disabled:bg-slate-500 disabled:cursor-not-allowed flex items-center">
+                    {isProcessingFile && <Spinner size="sm" />}
+                    <span className="ml-2">{chapter.sourceContent ? 'Content Processed' : 'Process Content'}</span>
                   </button>
-              </div>
-
-              <ActionButtons
-                isLoading={isLoading}
-                onSummarize={handleGenerateSummary}
-                onQuiz={handleGenerateQuiz}
-                onFlashcards={handleGenerateFlashcards}
-                onMangaMode={handleGenerateManga}
-              />
-
-              {error && <div className="mt-6 text-center text-red-700 bg-red-100 p-3 rounded-lg border border-red-200">{error}</div>}
-
-              {isLoading && (
-                <div className="mt-8 flex flex-col items-center justify-center text-slate-500 p-8 bg-slate-100/50 rounded-lg">
-                  <Spinner />
-                  <p className="mt-3 text-lg font-semibold text-slate-700">{loadingMessage}</p>
-                  <p className="text-sm text-slate-500">This may take a moment, please don't close the tab.</p>
-                </div>
-              )}
-              
-              {hasGeneratedContent && !isLoading && (
-                 <ResultDisplay
-                  summary={chapter.summary}
-                  quiz={chapter.quiz}
-                  flashcards={chapter.flashcards}
-                  mangaScript={chapter.mangaScript}
-                  activeTab={activeTab}
-                  setActiveTab={setActiveTab}
-                />
-              )}
-            </div>
+                  <button onClick={handleConvertToPdf} disabled={!canConvertToPdf || isConvertingToPdf} className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-600 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 disabled:bg-slate-300 dark:disabled:bg-slate-500 disabled:cursor-not-allowed flex items-center">
+                    {isConvertingToPdf && <Spinner size="sm" />}
+                    <span className="ml-2">Convert & Preview PDF</span>
+                  </button>
+               </div>
+             </div>
+          ) : (
+            <FileUpload onFileUpload={handleFileSelect} isProcessing={isProcessingFile} />
           )}
         </div>
-    </div>
+
+        <div className="mt-8 p-6 bg-white dark:bg-slate-800/50 rounded-lg shadow-sm">
+          <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-200">2. Generate Study Aids</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Once your material is processed, use the power of AI to create study aids.
+          </p>
+          <ActionButtons onGenerate={handleGenerate} generatingType={generatingType} hasContent={!!chapter.sourceContent} />
+        </div>
+
+        <div className="mt-8">
+          <ResultDisplay content={chapter.generatedContent} />
+        </div>
+      </div>
+    </>
   );
 };
+
+export default ChapterView;
