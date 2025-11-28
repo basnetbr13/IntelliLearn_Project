@@ -1,140 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>IntelliLearn Login</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        /* Basic Reset and Setup */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Inter", sans-serif;
+        }
+
+        /* Light Aqua Gradient Background */
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f7f6;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            background: linear-gradient(to bottom right, #ffffff, #f4fffd);
         }
 
-        /* Login Container Styling */
-        .login-container {
-            background-color: #ffffff;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        /* Login Card */
+        .login-card {
             width: 100%;
             max-width: 380px;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 40px 35px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
         }
 
-        h2 {
+        .login-card h2 {
             text-align: center;
+            font-weight: 700;
+            letter-spacing: 1px;
+            font-size: 26px;
+            margin-bottom: 25px;
             color: #333;
-            margin-bottom: 30px;
         }
 
-        /* Form Group and Input Styling */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
-        label {
+        .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
             color: #555;
         }
 
-        input[type="email"],
-        input[type="password"] {
+        .form-group input {
             width: 100%;
             padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box; 
-            font-size: 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 15px;
+            background: #fafafa;
+            transition: 0.2s;
         }
 
-        input[type="email"]:focus,
-        input[type="password"]:focus {
-            border-color: #007bff;
+        .form-group input:focus {
+            border-color: #9ca3af;
+            background: #fff;
             outline: none;
-            box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+            box-shadow: 0 0 0 3px rgba(180, 190, 205, 0.25);
         }
 
-        /* Button Styling */
+        /* Button */
         button {
             width: 100%;
-            background-color: #007bff;
-            color: white;
-            padding: 14px 20px;
+            padding: 12px;
             margin-top: 10px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
+            background-color: #4d6aff;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 18px;
-            transition: background-color 0.3s ease;
+            transition: 0.25s ease;
         }
 
         button:hover {
-            background-color: #0056b3;
+            background-color: #3c56d8;
         }
 
         /* Footer Links */
         .footer-links {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 18px;
         }
 
         .footer-links a {
-            color: #007bff;
+            color: #4d6aff;
             text-decoration: none;
             font-size: 14px;
+            font-weight: 500;
         }
 
         .footer-links a:hover {
             text-decoration: underline;
         }
-        
-        /* Error Message Styling */
+
+        /* Error message */
         #error-message {
-            color: #dc3545;
+            color: #d9534f;
             text-align: center;
-            margin-top: 15px;
-            font-weight: bold;
+            margin-top: 12px;
+            font-size: 14px;
+            font-weight: 600;
         }
     </style>
 </head>
+
 <body>
 
-    <div class="login-container">
-        <h2>Member Login</h2>
+    <div class="login-card">
+        <h2 style="letter-spacing: 1px; font-weight: 700;">IntelliLearn</h2>
+
         <form id="login-form">
             <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required>
+                <label>Email Address</label>
+                <input type="email" id="email" placeholder="Enter your email" required />
             </div>
+
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Enter your password" required />
             </div>
-            
+
             <button type="submit">Log In</button>
         </form>
-        
-        <p id="error-message"></p> 
+
+        <p id="error-message"></p>
 
         <div class="footer-links">
-            <a href="#">Forgot Password?</a> | 
-            <a href="Signup.html">Sign Up</a> 
+            <a href="#">Forgot Password?</a> • 
+            <a href="Signup.html">Create Account</a>
         </div>
     </div>
 
+    <!-- Firebase Login Script -->
     <script type="module">
-        // 1. Import the necessary functions from the SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
-        // Your web app's Firebase configuration
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDChk3geORyc2f5nWubEEex7DLOeT0TxFw",
             authDomain: "intellilearn-99dcf.firebaseapp.com",
@@ -146,56 +166,47 @@
             measurementId: "G-KZS4QLYW4W"
         };
 
-        // 2. Initialize Firebase and get the Auth instance
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app); // Get the authentication service instance
+        const auth = getAuth(app);
 
-        // --- Login Logic ---
+        // Login logic
+        const loginForm = document.getElementById("login-form");
+        const emailInput = document.getElementById("email");
+        const passwordInput = document.getElementById("password");
+        const errorMessageElement = document.getElementById("error-message");
 
-        // 3. Get the form elements
-        const loginForm = document.getElementById('login-form');
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const errorMessageElement = document.getElementById('error-message'); 
+        loginForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            errorMessageElement.textContent = "";
 
-        if (loginForm) {
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault(); // Stop the default form submission
+            try {
+                const userCredential = await signInWithEmailAndPassword(
+                    auth,
+                    emailInput.value,
+                    passwordInput.value
+                );
 
-                const email = emailInput.value;
-                const password = passwordInput.value;
-                
-                errorMessageElement.textContent = ''; // Clear previous error
+                console.log("Login Successful!", userCredential.user);
 
-                try {
-                    // 4. Call the Firebase login function
-                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                    
-                    // Success!
-                    console.log("Login Successful!", userCredential.user);
-                    // 5. Redirect the user to the dashboard
-                    // You must create a dashboard.html page for this to work
-                    window.location.href = 'dashboard.html'; 
-
-                } catch (error) {
-                    // Failure! Handle and display the error.
-                    let message;
-                    switch (error.code) {
-                        case 'auth/user-not-found':
-                        case 'auth/wrong-password':
-                            message = 'Invalid email or password.';
-                            break;
-                        case 'auth/invalid-email':
-                            message = 'The email address is not valid.';
-                            break;
-                        default:
-                            message = 'Login failed. Please try again.';
-                    }
-                    errorMessageElement.textContent = message;
-                    console.error("Firebase Login Error:", error.code, error.message);
+                // Redirect to main React app
+                window.location.href = "index.html";
+            } catch (error) {
+                let message;
+                switch (error.code) {
+                    case "auth/user-not-found":
+                    case "auth/wrong-password":
+                        message = "Invalid email or password.";
+                        break;
+                    case "auth/invalid-email":
+                        message = "The email address is invalid.";
+                        break;
+                    default:
+                        message = "Login failed. Try again.";
                 }
-            });
-        }
+                errorMessageElement.textContent = message;
+            }
+        });
     </script>
+
 </body>
 </html>
