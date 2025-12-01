@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Spinner } from './Spinner';
 
@@ -6,7 +7,8 @@ interface ActionButtonsProps {
   onSummarize: () => void;
   onQuiz: () => void;
   onFlashcards: () => void;
-  onMangaMode: () => void;
+  onMangaScript: () => void;
+  onAiTutor: () => void;
 }
 
 const ActionButton: React.FC<{ onClick: () => void; isLoading: boolean; children: React.ReactNode; icon: React.ReactNode; className: string }> = ({ onClick, isLoading, children, icon, className }) => (
@@ -21,14 +23,15 @@ const ActionButton: React.FC<{ onClick: () => void; isLoading: boolean; children
 );
 
 
-export const ActionButtons: React.FC<ActionButtonsProps> = ({ isLoading, onSummarize, onQuiz, onFlashcards, onMangaMode }) => {
+export const ActionButtons: React.FC<ActionButtonsProps> = ({ isLoading, onSummarize, onQuiz, onFlashcards, onMangaScript, onAiTutor }) => {
   const SummarizeIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg>;
   const QuizIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
   const FlashcardsIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>;
-  const MangaIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v11.494m0 0a7.5 7.5 0 007.5-7.5H4.5a7.5 7.5 0 007.5 7.5z" /></svg>;
+  const MangaIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
+  const TutorIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       <ActionButton onClick={onSummarize} isLoading={isLoading} icon={SummarizeIcon} className="bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/30">
         Summarize
       </ActionButton>
@@ -38,7 +41,10 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({ isLoading, onSumma
       <ActionButton onClick={onFlashcards} isLoading={isLoading} icon={FlashcardsIcon} className="bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/30">
         Flashcards
       </ActionButton>
-      <ActionButton onClick={onMangaMode} isLoading={isLoading} icon={MangaIcon} className="bg-purple-500 hover:bg-purple-600 text-white shadow-lg shadow-purple-500/30">
+      <ActionButton onClick={onAiTutor} isLoading={isLoading} icon={TutorIcon} className="bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/30">
+        AI Tutor
+      </ActionButton>
+      <ActionButton onClick={onMangaScript} isLoading={isLoading} icon={MangaIcon} className="bg-purple-500 hover:bg-purple-600 text-white shadow-lg shadow-purple-500/30">
         Manga Mode
       </ActionButton>
     </div>
